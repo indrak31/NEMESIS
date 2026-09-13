@@ -2,8 +2,8 @@
 
 import pytest
 from fastapi.testclient import TestClient
-from main import app, manager
-from models import Event
+from app.main import app, manager
+from app.models import Event
 
 
 @pytest.fixture

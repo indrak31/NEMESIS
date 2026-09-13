@@ -1,13 +1,13 @@
 """Tests for Nemesis scenario engine and defender validation logic."""
 
-from defender import (
+from app.defender import (
     TERRAFORM_PATCHES,
     generate_defender_fix_event,
     generate_simulation_result_event,
     get_patch_content,
     simulate_validation,
 )
-from engine import (
+from app.engine import (
     SCENARIOS,
     calculate_severity,
     generate_attack_start_event,

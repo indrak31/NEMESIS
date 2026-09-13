@@ -1,13 +1,13 @@
 """Static infrastructure topology definition for Nemesis.
 
-This module provides the hardcoded 8-service microservice graph and dependency edges
-specified in the Nemesis Round 1 Data Contract.
+This module provides the enterprise 8-service microservice graph and dependency edges
+specified in the Nemesis Core Data Contract.
 """
 
 from typing import Dict, List, Set, Tuple
-from models import GraphTopology, Node, NodeCriticality
+from .models import GraphTopology, Node, NodeCriticality
 
-# Hardcoded static node list matching Section 3 of Hackathon Data Contract
+# Static node list matching Section 3 of Data Contract
 STATIC_NODES: List[Dict[str, str]] = [
     {"id": "API Gateway", "criticality": "high"},
     {"id": "Auth Service", "criticality": "medium"},

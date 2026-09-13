@@ -1,0 +1,1152 @@
+/* ==========================================================================
+   NEMESIS LIVE RESILIENCE DASHBOARD STYLESHEET
+   ========================================================================== */
+
+:root {
+  --navy-dark: #0a0e1a;
+  --navy-bar: #0d1322;
+  --navy-card: #0b101d;
+  --navy-card-border: #1e293b;
+  --bg-canvas: #f1f5f9;
+  
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #f8fafc;
+
+  --color-red: #ef4444;
+  --color-red-soft: #fecaca;
+  --color-green: #10b981;
+  --color-green-soft: #d1fae5;
+  --color-amber: #f59e0b;
+  --color-amber-soft: #fef3c7;
+  --color-cyan: #06b6d4;
+  --color-gray: #94a3b8;
+
+  --radius-card: 14px;
+  --shadow-subtle: 0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --shadow-card-elevated: 0 10px 30px -4px rgba(0, 0, 0, 0.1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-canvas);
+  color: var(--text-main);
+  min-height: 100vh;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ==========================================================================
+   1. TOP BAR (DARK NAVY)
+   ========================================================================== */
+.top-bar {
+  background-color: var(--navy-bar);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.85rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffffff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.85rem;
+}
+
+.brand-nemesis {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-subtitle {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+/* Scenario Selector Dropdown */
+.scenario-dropdown-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.scenario-dropdown-wrap:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.text-amber {
+  color: var(--color-amber);
+}
+
+.scenario-dropdown-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+}
+
+.scenario-select {
+  background: transparent;
+  color: #f8fafc;
+  border: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.scenario-select option {
+  background-color: #0d1322;
+  color: #f8fafc;
+  padding: 0.5rem;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Red "LIVE RUN" Pill */
+.pill-live-run {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pill-dot-red {
+  width: 7px;
+  height: 7px;
+  background-color: var(--color-red);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--color-red);
+  animation: pulse-live 1.2s infinite ease-in-out;
+}
+
+/* Controls in Top Bar */
+.stream-toggle-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stream-toggle-pill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.top-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-trigger-run {
+  background: var(--color-red);
+  color: #ffffff;
+}
+
+.btn-trigger-run:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.btn-reset-run {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-reset-run:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   2. MAIN DASHBOARD CONTENT AREA
+   ========================================================================== */
+.main-content {
+  flex: 1;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 2.5rem 2rem;
+  display: grid;
+  grid-template-columns: 65% 35%;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   3. WHITE CARDS (COMMON)
+   ========================================================================== */
+.card-white {
+  background-color: #ffffff;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-subtle);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header {
+  padding: 1.25rem 1.5rem 0.75rem 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.card-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.card-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.card-header-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-green);
+  background: var(--color-green-soft);
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  letter-spacing: 0.05em;
+}
+
+.topology-badge-dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-green);
+  border-radius: 50%;
+  animation: pulse-live 2s infinite;
+}
+
+/* ==========================================================================
+   4. INFRASTRUCTURE GRAPH (LEFT PANEL)
+   ========================================================================== */
+.graph-card {
+  height: 640px;
+}
+
+.graph-svg-container {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%);
+}
+
+.graph-svg {
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+/* Edges */
+.graph-edge {
+  stroke: #cbd5e1;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  transition: stroke 0.4s ease, stroke-width 0.4s ease;
+}
+
+.graph-edge.edge-cascade {
+  stroke: var(--color-red);
+  stroke-width: 3.5;
+  stroke-dasharray: 6, 4;
+  animation: dash-move 1s linear infinite;
+}
+
+/* Nodes */
+.graph-node-group {
+  cursor: pointer;
+}
+
+.graph-node-circle {
+  transition: fill 0.45s ease, stroke 0.45s ease, filter 0.45s ease;
+}
+
+.node-pulsing .radar-ping {
+  animation: ping-wave 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.node-text-label {
+  transition: fill 0.3s ease;
+  pointer-events: none;
+}
+
+/* Graph Legend */
+.graph-legend {
+  padding: 0.85rem 1.5rem;
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.75rem;
+  font-size: 0.78rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: #475569;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.legend-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-gray {
+  background-color: var(--color-gray);
+  border: 1px solid #64748b;
+}
+
+.dot-red {
+  background-color: var(--color-red);
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+}
+
+.dot-amber {
+  background-color: var(--color-amber);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+.dot-green {
+  background-color: var(--color-green);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+/* ==========================================================================
+   5. RIGHT COLUMN: SCOREBOARD & LIVE TRACE
+   ========================================================================== */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  height: 640px;
+}
+
+/* Scoreboard Card */
+.scoreboard-card {
+  padding-bottom: 1.25rem;
+}
+
+.scoreboard-rows {
+  padding: 0.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.scoreboard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  background-color: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 8px;
+}
+
+.scoreboard-label-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.scoreboard-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.indicator-red { background-color: var(--color-red); }
+.indicator-green { background-color: var(--color-green); }
+.indicator-amber { background-color: var(--color-amber); }
+
+.scoreboard-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.scoreboard-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.value-red { color: var(--color-red); }
+.value-green { color: var(--color-green); }
+.value-amber { color: var(--color-amber); }
+
+.scoreboard-bar-wrap {
+  padding: 0.5rem 1.5rem 0 1.5rem;
+}
+
+.scoreboard-bar-track {
+  height: 6px;
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.scoreboard-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  border-radius: 9999px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scoreboard-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   6. LIVE TRACE CARD (DARK NAVY)
+   ========================================================================== */
+.card-navy {
+  background-color: var(--navy-card);
+  border: 1px solid var(--navy-card-border);
+  border-radius: var(--radius-card);
+  color: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+.trace-header {
+  padding: 0.95rem 1.25rem;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.trace-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.text-cyan {
+  color: var(--color-cyan);
+}
+
+.trace-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+}
+
+.trace-counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.trace-scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.85rem 1.15rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background-color: #080c16;
+}
+
+.trace-empty {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  color: #475569;
+  font-style: italic;
+}
+
+.trace-cursor {
+  animation: blink 1s infinite;
+  margin-right: 0.35rem;
+}
+
+.trace-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid transparent;
+  animation: entry-fade 0.25s ease;
+}
+
+.trace-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.trace-timestamp {
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
+.trace-type-badge {
+  padding: 0.1rem 0.38rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-red { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+.badge-orange { background: rgba(249, 115, 22, 0.2); color: #fb923c; }
+.badge-amber { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+.badge-cyan { background: rgba(6, 182, 212, 0.2); color: #67e8f9; }
+.badge-green { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+.badge-gray { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+
+.trace-service {
+  color: #93c5fd;
+  font-weight: 600;
+  font-size: 0.72rem;
+}
+
+.trace-message {
+  color: #f1f5f9;
+  line-height: 1.35;
+}
+
+.trace-detail {
+  font-size: 0.71rem;
+  line-height: 1.3;
+}
+
+.detail-red { color: #fca5a5; }
+.detail-amber { color: #fde68a; }
+.detail-cyan { color: #a5f3fc; }
+.detail-green { color: #86efac; }
+.detail-gray { color: #94a3b8; }
+
+/* PR Button at bottom of Live Trace */
+.trace-footer {
+  padding: 0.85rem 1.15rem;
+  background-color: rgba(255, 255, 255, 0.04);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-pr-action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  font-family: 'JetBrains Mono', monospace;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.btn-pr-action:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5);
+}
+
+/* ==========================================================================
+   7. ANIMATIONS
+   ========================================================================== */
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(1.15); }
+}
+
+@keyframes dash-move {
+  to { stroke-dashoffset: -20; }
+}
+
+@keyframes ping-wave {
+  0% { r: 25px; opacity: 0.9; stroke-width: 2.5px; }
+  100% { r: 42px; opacity: 0; stroke-width: 0.5px; }
+}
+
+@keyframes entry-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Scrollbar styling */
+.trace-scroll-area::-webkit-scrollbar {
+  width: 5px;
+}
+.trace-scroll-area::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+.trace-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   8. LAYOUT & TELEMETRY HUD ENHANCEMENTS
+   ========================================================================== */
+.main-content-layout {
+  flex: 1;
+  max-width: 1640px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 1rem 2rem 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.dashboard-columns {
+  display: grid;
+  grid-template-columns: 65% 35%;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.btn-inspect-header {
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: #67e8f9;
+}
+
+.btn-inspect-header:hover {
+  background: rgba(6, 182, 212, 0.22);
+  border-color: rgba(6, 182, 212, 0.6);
+  color: #ffffff;
+}
+
+/* Telemetry HUD */
+.telemetry-bar {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1.1fr;
+  gap: 1rem;
+  background: #ffffff;
+  border-radius: var(--radius-card);
+  padding: 0.85rem 1.5rem;
+  box-shadow: var(--shadow-subtle);
+  border: 1px solid #e2e8f0;
+}
+
+@media (max-width: 900px) {
+  .telemetry-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.telemetry-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border-right: 1px solid #e2e8f0;
+  padding-right: 1rem;
+}
+
+.telemetry-col:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.telemetry-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.telemetry-label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.telemetry-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.telemetry-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.val-normal { color: #0f172a; }
+.val-warn { color: var(--color-amber); }
+.val-danger { color: var(--color-red); }
+
+.telemetry-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.telemetry-phase-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  width: fit-content;
+}
+
+.phase-normal {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.phase-alert {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.phase-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #991b1b;
+  border: 1px solid #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+.phase-patching {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.phase-contained {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.phase-step-num {
+  font-size: 0.65rem;
+  opacity: 0.75;
+  margin-left: 0.4rem;
+  padding-left: 0.4rem;
+  border-left: 1px solid currentColor;
+}
+
+/* Header & Graph Actions */
+.header-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-inspect-patch {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-radius: 6px;
+  color: #0891b2;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-inspect-patch:hover {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: #06b6d4;
+  transform: translateY(-1px);
+}
+
+.badge-iactag {
+  background: #0891b2;
+  color: #ffffff;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.62rem;
+}
+
+/* Protected Edge Shield */
+.graph-edge.edge-protected {
+  stroke: #06b6d4;
+  stroke-width: 3.5;
+  filter: drop-shadow(0 0 8px rgba(6, 182, 212, 0.8));
+}
+
+.shield-badge-inner {
+  animation: shield-glow 2s infinite ease-in-out;
+}
+
+@keyframes shield-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.8));
+    opacity: 1;
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(6, 182, 212, 1));
+    opacity: 0.95;
+  }
+}
+
+.btn-inspect-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 0.5rem;
+}
+
+.btn-inspect-action:hover {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: #06b6d4;
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   9. TERRAFORM MODAL
+   ========================================================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+  animation: fade-in 0.2s ease;
+}
+
+.modal-card {
+  background: #0b1120;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 780px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #1e293b;
+  background: #0f172a;
+}
+
+.modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modal-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.modal-subtitle {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 6px;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.modal-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.meta-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.meta-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.05em;
+}
+
+.meta-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.modal-desc-box {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  line-height: 1.45;
+}
+
+.code-box-wrap {
+  background: #070a13;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.code-box-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid #1e293b;
+}
+
+.code-lang-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.05em;
+}
+
+.copy-code-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.copy-code-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.code-pre {
+  padding: 1rem;
+  max-height: 260px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: #a5b4fc;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #1e293b;
+  background: #0f172a;
+}
+
+.modal-proof-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: #6ee7b7;
+}
+
+.btn-modal-done {
+  padding: 0.5rem 1.25rem;
+  background: #38bdf8;
+  color: #0c151f;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn-modal-done:hover {
+  background: #7dd3fc;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

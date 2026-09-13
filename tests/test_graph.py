@@ -1,11 +1,11 @@
 """Tests for Nemesis static infrastructure topology contract."""
 
-from graph import STATIC_EDGES, STATIC_NODES, get_static_graph
-from models import GraphTopology
+from app.graph import STATIC_EDGES, STATIC_NODES, get_static_graph
+from app.models import GraphTopology
 
 
 def test_static_graph_structure():
-    """Verify that get_static_graph matches the exact Round 1 specification."""
+    """Verify that get_static_graph matches the exact topology specification."""
     g = get_static_graph()
     assert isinstance(g, GraphTopology)
     assert len(g.nodes) == 8

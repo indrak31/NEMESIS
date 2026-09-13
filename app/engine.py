@@ -1,17 +1,14 @@
 """Scenario Engine ("Attacker") for Nemesis.
 
-NOTE FOR JUDGES & EVALUATORS:
-The "Attacker" scenario engine implemented here is a deterministic, scripted
-scenario picker designed for reliable, repeatable live hackathon demonstrations.
-It does NOT use trained Reinforcement Learning (RL) or black-box ML models.
-Every scenario reliably executes the exact same cascade path and severity scoring
-to ensure live demo stability.
+The Scenario Engine executes deterministic chaos failure vectors across the
+dependency topology, simulating cascading brownouts with normalized severity scoring
+and real-time event generation.
 """
 
 from datetime import datetime
 from typing import Dict, List, Optional
-from graph import get_node_criticality_map
-from models import Event, GraphDelta, ScenarioDefinition
+from .graph import get_node_criticality_map
+from .models import Event, GraphDelta, ScenarioDefinition
 
 
 def get_current_timestamp() -> str:

@@ -1,0 +1,65 @@
+[
+  {
+    "type": "attack_start",
+    "timestamp": "11:05:06",
+    "service": "Payment Service",
+    "message": "Attacker: injecting failure vector (Payment Gateway Latency Spike)",
+    "detail": "Target: Payment Service | Severity: 9.2/10",
+    "graph_delta": {
+      "node": "Payment Service",
+      "state": "attacked"
+    }
+  },
+  {
+    "type": "cascade",
+    "timestamp": "11:05:06",
+    "service": "Orders Service",
+    "message": "Cascade: failure propagated from Payment Service to Orders Service",
+    "detail": "Cascade path: Payment Service -> Orders Service",
+    "graph_delta": {
+      "node": "Orders Service",
+      "state": "attacked"
+    }
+  },
+  {
+    "type": "cascade",
+    "timestamp": "11:05:06",
+    "service": "Orders DB",
+    "message": "Cascade: failure propagated from Orders Service to Orders DB",
+    "detail": "Cascade path: Orders Service -> Orders DB",
+    "graph_delta": {
+      "node": "Orders DB",
+      "state": "attacked"
+    }
+  },
+  {
+    "type": "defender_fix",
+    "timestamp": "11:05:06",
+    "service": "Payment Service",
+    "message": "Defender: proposing remediation (Deploy resilience circuit breaker and fallback bulkhead on Payment Service)",
+    "detail": "circuit_breaker.tf",
+    "graph_delta": {
+      "node": "Payment Service",
+      "state": "patching"
+    }
+  },
+  {
+    "type": "simulation_result",
+    "timestamp": "11:05:06",
+    "service": "Payment Service",
+    "message": "Defender: simulated validation passed \u2014 cascade contained at Payment Service",
+    "detail": "Cascade contained. Protected edge [Payment Service -> Orders Service] blocked propagation.",
+    "graph_delta": {
+      "node": "Payment Service",
+      "state": "protected"
+    }
+  },
+  {
+    "type": "pr_opened",
+    "timestamp": "11:05:06",
+    "service": "Payment Service",
+    "message": "Defender: remediation PR opened (#142 fix/payment-service-circuit_breaker)",
+    "detail": "#142 fix/payment-service-circuit_breaker",
+    "graph_delta": null
+  }
+]

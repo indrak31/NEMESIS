@@ -1,9 +1,13 @@
-"""Live verification script demonstrating real-time WebSocket reception."""
+"""Live verification script demonstrating real-time WebSocket reception.
+
+Usage:
+    python scripts/live_demo_test.py
+"""
 
 import asyncio
 import json
-import websockets
 import httpx
+import websockets
 
 
 async def run_live_verification():
@@ -24,9 +28,13 @@ async def run_live_verification():
             msg_text = await asyncio.wait_for(ws.recv(), timeout=5.0)
             event = json.loads(msg_text)
             received_count += 1
-            print(f"[{event['timestamp']}] Event #{received_count}: {event['type']:<18} | Node: {event.get('service') or 'N/A':<16} | Msg: {event['message']}")
+            print(
+                f"[{event['timestamp']}] Event #{received_count}: {event['type']:<18} | Node: {event.get('service') or 'N/A':<16} | Msg: {event['message']}"
+            )
             if event.get("graph_delta"):
-                print(f"    ↳ GraphDelta: {event['graph_delta']['node']} -> {event['graph_delta']['state']}")
+                print(
+                    f"    ↳ GraphDelta: {event['graph_delta']['node']} -> {event['graph_delta']['state']}"
+                )
             if event.get("detail"):
                 print(f"    ↳ Detail: {event['detail']}")
 

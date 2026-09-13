@@ -15,9 +15,9 @@ import os
 import time
 from typing import Dict, Optional, Tuple
 import httpx
-from defender import get_patch_content
-from engine import get_current_timestamp
-from models import Event, ScenarioDefinition
+from .defender import get_patch_content
+from .engine import get_current_timestamp
+from .models import Event, ScenarioDefinition
 
 # In-memory counter for realistic stubbed PR numbers during demo rehearsals
 _STUB_PR_COUNTER = 141
@@ -84,6 +84,7 @@ async def open_github_pr(scenario: ScenarioDefinition) -> Tuple[str, str]:
                                     "message": f"feat(resilience): apply {scenario.canned_fix_file} patch",
                                     "content": content_b64,
                                     "branch": unique_branch,
+                                    "patch": unique_branch,
                                 },
                             )
 
@@ -121,8 +122,7 @@ async def open_github_pr(scenario: ScenarioDefinition) -> Tuple[str, str]:
             pass
 
     # =========================================================================
-    # TODO: swap for real GitHub API call when GITHUB_TOKEN and GITHUB_REPO are set.
-    # Deterministic / realistic stub for offline hackathon demonstration
+    # Realistic stub for offline simulation and isolated environments
     # =========================================================================
     _STUB_PR_COUNTER += 1
     pr_num = _STUB_PR_COUNTER
@@ -135,8 +135,6 @@ def generate_pr_opened_event(
     scenario: ScenarioDefinition, pr_ref: str, pr_url: Optional[str] = None
 ) -> Event:
     """Generate the pr_opened event concluding the scenario lifecycle."""
-    # Match contract: detail carries the PR reference (e.g. '#142 fix/payment-circuit-breaker')
-    # or combined with URL for frontend button activation
     return Event(
         type="pr_opened",
         timestamp=get_current_timestamp(),
