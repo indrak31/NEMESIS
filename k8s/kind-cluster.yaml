@@ -1,0 +1,18 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: nemesis-cluster
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30000
+    hostPort: 8000
+    protocol: TCP
+  - containerPort: 30001
+    hostPort: 8001
+    protocol: TCP
+  - containerPort: 30003
+    hostPort: 8003
+    protocol: TCP
+  - containerPort: 30173
+    hostPort: 5173
+    protocol: TCP

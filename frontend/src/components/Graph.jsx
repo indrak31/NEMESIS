@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, ShieldAlert, Zap } from "lucide-react";
+import { Shield, ShieldAlert, Zap, Server } from "lucide-react";
 
 // Fixed positions matching visual spec with clean vertical spacing
 const NODE_POSITIONS = {
@@ -34,6 +34,7 @@ export default function Graph({
   activeScenarioMeta = null,
   protectedEdge = null, // e.g. ["Payment Service", "Orders Service"]
   onInspectPatch = null,
+  onSelectNode = null,
 }) {
   // Map node state to color & glow filter
   const getNodeVisuals = (nodeId) => {
@@ -66,6 +67,15 @@ export default function Graph({
           stateLabel: "PROTECTED (SHIELD)",
           pulse: false,
         };
+      case "deployed":
+        return {
+          fill: "#10b981",
+          stroke: "#047857",
+          filter: "url(#glow-emerald)",
+          textColor: "#059669",
+          stateLabel: "DEPLOYED (PROD)",
+          pulse: false,
+        };
       case "healed":
       case "healthy":
       default:
@@ -92,7 +102,7 @@ export default function Graph({
                 {activeScenarioMeta.target} &rarr; {activeScenarioMeta.cascadePath}
               </>
             ) : (
-              "8 microservices · Directed dependency topology"
+              "8 microservices · Directed dependency topology · Click node to inspect"
             )}
           </p>
         </div>
@@ -152,6 +162,17 @@ export default function Graph({
                 dy="0"
                 stdDeviation="8"
                 floodColor="#06b6d4"
+                floodOpacity="0.9"
+              />
+            </filter>
+
+            {/* Emerald Green Halo for Deployed in Production */}
+            <filter id="glow-emerald" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow
+                dx="0"
+                dy="0"
+                stdDeviation="8"
+                floodColor="#10b981"
                 floodOpacity="0.9"
               />
             </filter>
@@ -247,7 +268,6 @@ export default function Graph({
                   {/* PROTECTED BOUNDARY SHIELD BADGE */}
                   {isEdgeProtected && (() => {
                     const isVertical = Math.abs(posA.x - posB.x) < 10;
-                    // On vertical cascades (e.g. PAY -> ORD or ORD -> DB), position slightly lower so it doesn't touch the top node's label
                     const t = isVertical ? 0.60 : 0.50;
                     const badgeX = posA.x + (posB.x - posA.x) * t;
                     const badgeY = posA.y + (posB.y - posA.y) * t;
@@ -299,7 +319,10 @@ export default function Graph({
                 <g
                   key={node.id}
                   transform={`translate(${pos.x}, ${pos.y})`}
-                  className={`graph-node-group ${pulse ? "node-pulsing" : ""}`}
+                  className={`graph-node-group ${pulse ? "node-pulsing" : ""} node-interactive`}
+                  onClick={() => onSelectNode && onSelectNode(node.id)}
+                  title={`Click to inspect ${node.id} telemetry and inject chaos`}
+                  style={{ cursor: "pointer" }}
                 >
                   {/* Animated outer ping ring if attacked */}
                   {pulse && (
@@ -345,6 +368,7 @@ export default function Graph({
                     fontWeight="700"
                     fontFamily="Inter, sans-serif"
                     className="node-text-label"
+                    pointerEvents="none"
                   >
                     {node.id}
                   </text>
@@ -358,6 +382,7 @@ export default function Graph({
                     fontWeight="700"
                     fontFamily="JetBrains Mono, monospace"
                     letterSpacing="0.04em"
+                    pointerEvents="none"
                   >
                     {stateLabel}
                   </text>
@@ -385,6 +410,10 @@ export default function Graph({
         <div className="legend-item">
           <span className="legend-dot dot-cyan"></span>
           <span className="legend-text">Protected / Isolated Boundary</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-dot dot-emerald"></span>
+          <span className="legend-text">Deployed in Prod</span>
         </div>
       </div>
     </div>

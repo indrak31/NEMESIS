@@ -1,19 +1,38 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Play, RotateCcw, Radio, Wifi, WifiOff, ShieldAlert, FileCode } from "lucide-react";
+import {
+  Play,
+  RotateCcw,
+  Radio,
+  Wifi,
+  WifiOff,
+  ShieldAlert,
+  FileCode,
+  GitPullRequest,
+  FileText
+} from "lucide-react";
 import Graph from "./components/Graph";
 import Scoreboard from "./components/Scoreboard";
 import LiveTrace from "./components/LiveTrace";
 import TelemetryBar from "./components/TelemetryBar";
 import TerraformModal from "./components/TerraformModal";
-import { FALLBACK_GRAPH, SCENARIO_OPTIONS, startMockEventStream } from "./mockEvents";
+import GitOpsModal from "./components/GitOpsModal";
+import NodeInspectorModal from "./components/NodeInspectorModal";
+import IncidentReportModal from "./components/IncidentReportModal";
+import { FALLBACK_GRAPH, SCENARIO_OPTIONS } from "./mockEvents";
 import "./App.css";
 
 // =============================================================================
-// CONFIGURATION: SWAP THIS SINGLE LINE TO SWITCH BETWEEN MOCK & REAL BACKEND
+// CONFIGURATION: Real backend on localhost:8000
 // =============================================================================
-const USE_MOCK_STREAM_DEFAULT = true; // Set to FALSE when backend is running!
-const WS_BACKEND_URL = "ws://localhost:8000/events";
-const REST_BACKEND_URL = "http://localhost:8000";
+const WS_BACKEND_URL =
+  typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? `ws://${window.location.hostname}:8000/events`
+    : "ws://localhost:8000/events";
+
+const REST_BACKEND_URL =
+  typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? `http://${window.location.hostname}:8000`
+    : "http://localhost:8000";
 
 // Protected boundary mapping for each scenario
 const SCENARIO_PROTECTED_EDGES = {
@@ -24,9 +43,8 @@ const SCENARIO_PROTECTED_EDGES = {
 };
 
 export default function App() {
-  // Mode flag: toggle between standalone Mock simulation and live WebSocket
-  const [useMockStream, setUseMockStream] = useState(USE_MOCK_STREAM_DEFAULT);
-  const [wsConnected, setWsConnected] = useState(false);
+  // Live WebSocket connection status: "connected" | "connecting" | "disconnected"
+  const [connectionStatus, setConnectionStatus] = useState("connecting");
   const [isRunning, setIsRunning] = useState(false);
 
   // Selected scenario
@@ -51,18 +69,22 @@ export default function App() {
   // Trace and Scoreboard state
   const [events, setEvents] = useState([]);
   const [latestPr, setLatestPr] = useState(null);
+  const [isPrDeployed, setIsPrDeployed] = useState(false);
   const [scoreboard, setScoreboard] = useState({
     failuresFound: 0,
     neutralized: 0,
     escalated: 0,
   });
 
-  // Terraform Modal state
+  // Modals state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPatchKey, setModalPatchKey] = useState("circuit_breaker.tf");
+  const [gitopsModalOpen, setGitopsModalOpen] = useState(false);
+  const [nodeInspectorOpen, setNodeInspectorOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [incidentReportOpen, setIncidentReportOpen] = useState(false);
 
   const wsRef = useRef(null);
-  const cancelMockRef = useRef(null);
   const previousServiceRef = useRef(null);
   const attackedNodesRef = useRef(new Set());
   const currentScenarioIdRef = useRef(selectedScenario);
@@ -93,10 +115,10 @@ export default function App() {
 
   // 2. Central Event Handler (Consumes exact data contract + applies recovery logic)
   const handleIncomingEvent = useCallback((event) => {
-    // A. Append to Live Trace
+    // Append to Live Trace
     setEvents((prev) => [...prev, event]);
 
-    // B. State & Telemetry Progression based on event type
+    // State & Telemetry Progression based on event type
     if (event.type === "attack_start") {
       attackedNodesRef.current.add(event.service);
       if (event.graph_delta) {
@@ -164,11 +186,9 @@ export default function App() {
         errorRate: 8.2,
       }));
     } else if (event.type === "simulation_result") {
-      // RECOVERY LOGIC:
-      // 1. Clear active red cascade paths so arrows don't linger!
+      // Recovery logic
       setActiveEdges(new Set());
 
-      // 2. Extract exact boundary edge from detail string: "Protected edge [A -> B]"
       const targetService = event.service;
       let boundaryEdge = null;
       if (event.detail) {
@@ -183,7 +203,6 @@ export default function App() {
       }
       setProtectedEdge(boundaryEdge);
 
-      // 3. Target node is protected (cyan shield); downstream nodes heal back to healthy!
       setNodeStates((prev) => {
         const updated = { ...prev };
         updated[targetService] = "protected";
@@ -209,6 +228,17 @@ export default function App() {
     } else if (event.type === "pr_opened") {
       setLatestPr(event);
       setIsRunning(false);
+    } else if (event.type === "deployment_complete") {
+      setIsPrDeployed(true);
+      if (event.service) {
+        setNodeStates((prev) => ({ ...prev, [event.service]: "deployed" }));
+      }
+      setTelemetry((prev) => ({
+        ...prev,
+        phase: "deployed",
+        latency: 38,
+        errorRate: 0.0,
+      }));
     }
 
     if (event.service) {
@@ -216,28 +246,21 @@ export default function App() {
     }
   }, [selectedScenario]);
 
-  // 3. WebSocket Connection Hook
+  // 3. WebSocket Connection Hook (Direct to real backend)
   useEffect(() => {
-    if (useMockStream) {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      setWsConnected(false);
-      return;
-    }
-
     let isMounted = true;
     let reconnectTimeout = null;
 
     function connectWs() {
+      if (!isMounted) return;
+      setConnectionStatus("connecting");
       try {
         const ws = new WebSocket(WS_BACKEND_URL);
         wsRef.current = ws;
 
         ws.onopen = () => {
           if (!isMounted) return;
-          setWsConnected(true);
+          setConnectionStatus("connected");
         };
 
         ws.onmessage = (msg) => {
@@ -245,20 +268,29 @@ export default function App() {
           try {
             const data = JSON.parse(msg.data);
             handleIncomingEvent(data);
-          } catch (e) {}
+          } catch (e) {
+            console.error("Failed to parse incoming WebSocket message:", e);
+          }
         };
 
         ws.onclose = () => {
           if (!isMounted) return;
-          setWsConnected(false);
-          reconnectTimeout = setTimeout(connectWs, 2500);
+          setConnectionStatus("disconnected");
+          reconnectTimeout = setTimeout(connectWs, 2000);
         };
 
         ws.onerror = () => {
-          ws.close();
+          if (!isMounted) return;
+          setConnectionStatus("disconnected");
+          try {
+            ws.close();
+          } catch (e) {}
         };
       } catch (err) {
-        setWsConnected(false);
+        if (isMounted) {
+          setConnectionStatus("disconnected");
+          reconnectTimeout = setTimeout(connectWs, 2000);
+        }
       }
     }
 
@@ -267,42 +299,37 @@ export default function App() {
     return () => {
       isMounted = false;
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (wsRef.current) wsRef.current.close();
+      if (wsRef.current) {
+        try {
+          wsRef.current.close();
+        } catch (e) {}
+      }
     };
-  }, [useMockStream, handleIncomingEvent]);
+  }, [handleIncomingEvent]);
 
-  // 4. Trigger / Replay Simulation for Selected Scenario
-  const handleTriggerRun = (overrideScenario) => {
+  // 4. Trigger Simulation for Selected Scenario against Real Backend
+  const handleTriggerRun = async (overrideScenario) => {
     const scenarioToRun = overrideScenario || selectedScenario;
     currentScenarioIdRef.current = scenarioToRun;
-    handleReset();
+    await handleReset();
     setIsRunning(true);
 
-    if (useMockStream) {
-      if (cancelMockRef.current) cancelMockRef.current();
-      cancelMockRef.current = startMockEventStream(
-        scenarioToRun,
-        handleIncomingEvent,
-        () => {
-          setIsRunning(false);
-        }
-      );
-    } else {
-      fetch(`${REST_BACKEND_URL}/run-scenario/${scenarioToRun}`, {
+    try {
+      const res = await fetch(`${REST_BACKEND_URL}/run-scenario/${scenarioToRun}`, {
         method: "POST",
-      }).catch((err) => {
-        console.error("Failed to trigger backend scenario:", err);
       });
+      if (!res.ok) {
+        console.warn("Backend run-scenario endpoint returned error status:", res.status);
+        setIsRunning(false);
+      }
+    } catch (err) {
+      console.error("Failed to trigger real backend scenario:", err);
+      setIsRunning(false);
     }
   };
 
   // 5. Reset Topology & State
-  const handleReset = () => {
-    if (cancelMockRef.current) {
-      cancelMockRef.current();
-      cancelMockRef.current = null;
-    }
-
+  const handleReset = async () => {
     const healthyStates = {};
     nodes.forEach((n) => {
       healthyStates[n.id] = "healthy";
@@ -314,6 +341,7 @@ export default function App() {
     attackedNodesRef.current.clear();
     setEvents([]);
     setLatestPr(null);
+    setIsPrDeployed(false);
     setScoreboard({ failuresFound: 0, neutralized: 0, escalated: 0 });
     setTelemetry({
       phase: "normal",
@@ -324,8 +352,10 @@ export default function App() {
     previousServiceRef.current = null;
     setIsRunning(false);
 
-    if (!useMockStream) {
-      fetch(`${REST_BACKEND_URL}/reset`, { method: "POST" }).catch(() => {});
+    try {
+      await fetch(`${REST_BACKEND_URL}/reset`, { method: "POST" });
+    } catch (err) {
+      // Graceful fallback if backend is temporarily unreachable
     }
   };
 
@@ -335,18 +365,69 @@ export default function App() {
     setModalOpen(true);
   };
 
-  // Run initial mock on mount
+  // Open Node Inspector when a node in graph is clicked
+  const handleSelectNode = (nodeId) => {
+    setSelectedNodeId(nodeId);
+    setNodeInspectorOpen(true);
+  };
+
+  // Handler for GitOps merge success
+  const handleMergeSuccess = (result) => {
+    setIsPrDeployed(true);
+    const targetService = currentScenarioMeta.target;
+    setNodeStates((prev) => ({
+      ...prev,
+      [targetService]: "deployed",
+    }));
+    setTelemetry((prev) => ({
+      ...prev,
+      phase: "deployed",
+      latency: 36,
+      errorRate: 0.0,
+    }));
+    setEvents((prev) => [
+      ...prev,
+      {
+        type: "deployment_complete",
+        timestamp: new Date().toTimeString().split(" ")[0],
+        service: targetService,
+        message: "GitOps Engine: PR merged & deployed to production (AWS EKS)",
+        detail: "Zero-downtime rolling update certified. Canary health 100%.",
+      },
+    ]);
+  };
+
+  // Handler for ad-hoc custom fault injection
+  const handleCustomFaultInjected = (fault) => {
+    handleIncomingEvent({
+      type: "attack_start",
+      timestamp: new Date().toTimeString().split(" ")[0],
+      service: fault.target_node,
+      message: `Chaos Engine: injected ${fault.fault_type} on ${fault.target_node}`,
+      detail: `Severity: ${fault.severity} | Latency: +${fault.latency_ms || 450}ms`,
+      graph_delta: { node: fault.target_node, state: "attacked" },
+    });
+  };
+
+  // Initial reset on load
   useEffect(() => {
-    if (useMockStream) {
-      handleTriggerRun("payment_latency_spike");
-    }
-    return () => {
-      if (cancelMockRef.current) cancelMockRef.current();
-    };
+    handleReset();
   }, []);
 
   return (
     <div className="app-root">
+      {/* Dynamic Reconnection Banner if WebSocket is disconnected or connecting */}
+      {connectionStatus !== "connected" && (
+        <div className="reconnect-banner">
+          <span className="reconnect-pulse-dot" />
+          <span>
+            {connectionStatus === "connecting"
+              ? "CONNECTING: Establishing real WebSocket link to ws://localhost:8000/events..."
+              : "BACKEND UNRESPONSIVE: Connection dropped. Retrying real WebSocket in 2s..."}
+          </span>
+        </div>
+      )}
+
       {/* ====================================================================
           TOP BAR (Dark Navy)
           ==================================================================== */}
@@ -389,33 +470,58 @@ export default function App() {
             <span>{currentScenarioMeta.fixFile}</span>
           </button>
 
-          {/* Mock vs Live Stream Mode Indicator & Toggle */}
+          {/* GitOps Automation Hub Button in Header */}
           <button
-            className="stream-toggle-pill"
-            onClick={() => {
-              const nextMode = !useMockStream;
-              setUseMockStream(nextMode);
-              handleReset();
-            }}
-            title="Toggle between Standalone Mock and Live Backend WebSocket"
+            className={`top-action-btn btn-gitops-header ${isPrDeployed ? "btn-gitops-header-deployed" : ""}`}
+            onClick={() => setGitopsModalOpen(true)}
+            title="Open GitOps Review & Deployment Hub"
           >
-            {useMockStream ? (
-              <>
-                <Radio size={12} className="text-cyan" />
-                <span>STREAM: MOCK EMITTER</span>
-              </>
-            ) : wsConnected ? (
-              <>
-                <Wifi size={12} className="text-green" />
-                <span>WS: CONNECTED (PORT 8000)</span>
-              </>
-            ) : (
-              <>
-                <WifiOff size={12} className="text-red" />
-                <span>WS: DISCONNECTED</span>
-              </>
-            )}
+            <GitPullRequest size={13} className={isPrDeployed ? "text-green" : "text-cyan"} />
+            <span>{isPrDeployed ? "GITOPS: DEPLOYED" : "GITOPS HUB"}</span>
           </button>
+
+          {/* AI RCA Post-Mortem Button in Header */}
+          <button
+            className="top-action-btn btn-report-header"
+            onClick={() => setIncidentReportOpen(true)}
+            title="View Executive Incident Post-Mortem and Root Cause Analysis"
+          >
+            <FileText size={13} className="text-cyan" />
+            <span>POST-MORTEM</span>
+          </button>
+
+          {/* Visible Real Connection Status Indicator (Small Dot: Green = Connected, Red = Disconnected) */}
+          <div
+            className={`ws-connection-indicator ${
+              connectionStatus === "connected"
+                ? "indicator-connected"
+                : connectionStatus === "connecting"
+                ? "indicator-connecting"
+                : "indicator-disconnected"
+            }`}
+            title={
+              connectionStatus === "connected"
+                ? "Connected to real NEMESIS backend WebSocket at ws://localhost:8000/events"
+                : "WebSocket disconnected from backend. Attempting automatic reconnection..."
+            }
+          >
+            <span
+              className={`status-dot ${
+                connectionStatus === "connected"
+                  ? "status-dot-green"
+                  : connectionStatus === "connecting"
+                  ? "status-dot-amber"
+                  : "status-dot-red"
+              }`}
+            />
+            <span className="indicator-label">
+              {connectionStatus === "connected"
+                ? "BACKEND CONNECTED"
+                : connectionStatus === "connecting"
+                ? "CONNECTING..."
+                : "DISCONNECTED (RETRYING)"}
+            </span>
+          </div>
 
           {/* Trigger Run Button */}
           <button
@@ -441,6 +547,16 @@ export default function App() {
         </div>
       </header>
 
+      {/* Reconnection Alert Banner if backend is disconnected */}
+      {connectionStatus === "disconnected" && (
+        <div className="reconnect-banner">
+          <WifiOff size={14} className="text-red" />
+          <span>
+            Backend connection lost. Real-time telemetry paused. Reconnecting to ws://localhost:8000/events...
+          </span>
+        </div>
+      )}
+
       {/* ====================================================================
           MAIN DASHBOARD: Telemetry HUD + 65% Graph | 35% Scoreboard + Trace
           ==================================================================== */}
@@ -465,6 +581,7 @@ export default function App() {
               activeScenarioMeta={currentScenarioMeta}
               protectedEdge={protectedEdge}
               onInspectPatch={handleOpenPatchModal}
+              onSelectNode={handleSelectNode}
             />
           </section>
 
@@ -481,6 +598,9 @@ export default function App() {
               latestPr={latestPr}
               activePatchKey={currentScenarioMeta.fixFile}
               onInspectPatch={handleOpenPatchModal}
+              onOpenGitOps={() => setGitopsModalOpen(true)}
+              onOpenIncidentReport={() => setIncidentReportOpen(true)}
+              isPrDeployed={isPrDeployed}
             />
           </aside>
         </div>
@@ -491,6 +611,35 @@ export default function App() {
         patchKey={modalPatchKey}
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
+      />
+
+      {/* Interactive GitOps Review & Merge Hub Modal */}
+      <GitOpsModal
+        isOpen={gitopsModalOpen}
+        onClose={() => setGitopsModalOpen(false)}
+        onMergeSuccess={handleMergeSuccess}
+        backendUrl={REST_BACKEND_URL}
+        useMockStream={false}
+      />
+
+      {/* Interactive Node Inspector & Chaos Fault Injection Modal */}
+      <NodeInspectorModal
+        nodeId={selectedNodeId}
+        isOpen={nodeInspectorOpen}
+        onClose={() => setNodeInspectorOpen(false)}
+        nodeState={nodeStates[selectedNodeId] || "healthy"}
+        onInjectFault={handleCustomFaultInjected}
+        backendUrl={REST_BACKEND_URL}
+        useMockStream={false}
+      />
+
+      {/* Executive AI Incident Post-Mortem & RCA Modal */}
+      <IncidentReportModal
+        isOpen={incidentReportOpen}
+        onClose={() => setIncidentReportOpen(false)}
+        backendUrl={REST_BACKEND_URL}
+        useMockStream={false}
+        scenarioMeta={currentScenarioMeta}
       />
     </div>
   );

@@ -154,3 +154,57 @@ def generate_cascade_events(scenario: ScenarioDefinition) -> List[Event]:
         )
         prev = hop
     return events
+
+
+def create_custom_chaos_scenario(
+    target_service: str,
+    fault_type: str = "latency",
+    intensity_ms: int = 450,
+    error_rate_pct: float = 30.0,
+) -> ScenarioDefinition:
+    """Dynamically synthesize a failure scenario for arbitrary user-selected node."""
+    from .graph import STATIC_EDGES
+
+    # Find immediate downstream neighbors
+    downstream = [dst for src, dst in STATIC_EDGES if src == target_service]
+    if not downstream:
+        # Fallback to upstream caller if leaf node
+        downstream = [src for src, dst in STATIC_EDGES if dst == target_service]
+
+    cascade_path = downstream[:2] if downstream else ["Orders Service"]
+    severity = calculate_severity(target_service, cascade_path)
+
+    # Pick appropriate patch template
+    if "db" in target_service.lower():
+        patch_file = "db_connection_pool.tf"
+        patch_desc = f"Deploy PgBouncer connection pooling and read replicas on {target_service}"
+    elif "auth" in target_service.lower() or "gateway" in target_service.lower():
+        patch_file = "rate_limiter.tf"
+        patch_desc = f"Apply token-bucket rate limiter and WAF filtering on {target_service}"
+    elif "inventory" in target_service.lower():
+        patch_file = "async_inventory_queue.tf"
+        patch_desc = f"Deploy asynchronous FIFO decoupling queue on {target_service}"
+    else:
+        patch_file = "circuit_breaker.tf"
+        patch_desc = f"Deploy Envoy circuit breaker & outlier ejection bulkhead on {target_service}"
+
+    protected_edge = (
+        (target_service, cascade_path[0])
+        if cascade_path
+        else (target_service, "Orders Service")
+    )
+
+    scenario = ScenarioDefinition(
+        name="custom_chaos",
+        title=f"Custom Chaos: {fault_type.capitalize()} on {target_service} (+{intensity_ms}ms)",
+        description=f"Ad-hoc {fault_type} injection of {intensity_ms}ms and {error_rate_pct}% error rate on {target_service}.",
+        target_service=target_service,
+        cascade_path=cascade_path,
+        severity_score=severity,
+        canned_fix_file=patch_file,
+        canned_fix_desc=patch_desc,
+        protected_edge=protected_edge,
+    )
+    SCENARIOS["custom_chaos"] = scenario
+    return scenario
+

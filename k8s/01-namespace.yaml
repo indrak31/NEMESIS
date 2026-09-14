@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nemesis
+  labels:
+    app.kubernetes.io/part-of: nemesis
+    resilience.nemesis.io/monitored: "true"

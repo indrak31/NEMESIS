@@ -9,10 +9,15 @@ This service provides:
 """
 
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional, Set
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+
+load_dotenv()
+
 
 from .defender import (
     generate_defender_fix_event,
@@ -75,21 +80,42 @@ manager = ConnectionManager()
 # =============================================================================
 # FastAPI Application & Lifecycle
 # =============================================================================
+from .cluster_manager import cluster_manager
+from .traffic import traffic_engine
+from .github_pr import (
+    configure_github_credentials,
+    generate_deployment_complete_event,
+    get_current_pr,
+    merge_current_pr,
+)
+from .defender import generate_incident_report
+from .engine import create_custom_chaos_scenario
+from .models import CustomFaultInjection, IncidentReport, PullRequestDetails, TelemetryPoint
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup initialization
+    enable_cluster = os.getenv("ENABLE_REAL_CLUSTER", "true").lower() in ("true", "1", "yes")
+    if enable_cluster:
+        await cluster_manager.start()
+
+    traffic_engine.start()
     yield
     # Shutdown cleanup
+    traffic_engine.stop()
+    if enable_cluster:
+        await cluster_manager.stop()
 
 
 app = FastAPI(
     title="Nemesis API",
-    description="Adversarial resilience simulation backend for microservice topologies",
+    description="Autonomous resilience simulation backend and GitOps engine for microservice topologies",
     version="1.0.0",
     lifespan=lifespan,
 )
 
-# Enable CORS for frontend integration (React dashboard on localhost:3000 / 5173 / etc.)
+# Enable CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -116,18 +142,41 @@ async def root():
             "scenarios": "/scenarios",
             "reset": "/reset",
             "history": "/events/history",
+            "pr_current": "/pr/current",
+            "pr_merge": "/pr/merge",
+            "pr_configure": "/pr/configure",
+            "metrics_history": "/metrics/history",
+            "inject_fault": "/inject-fault",
+            "incident_report": "/incident/report",
         },
     }
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
+    """Health check endpoint with live traffic engine status."""
+    latest_tel = traffic_engine.get_latest_telemetry()
     return {
         "status": "healthy",
         "timestamp": get_current_timestamp(),
         "active_ws_clients": len(manager.active_connections),
+        "traffic_engine_running": traffic_engine.is_running,
+        "rolling_p99_latency_ms": latest_tel.p99_latency_ms,
+        "rolling_error_rate_pct": latest_tel.error_rate_pct,
     }
+
+
+@app.get("/cluster/health", tags=["Cluster"])
+async def get_cluster_health():
+    """Retrieve real-time health and socket status of all 8 microservices."""
+    health = await cluster_manager.get_health_status()
+    all_healthy = len(health) == 8 and all(s.get("status") == "healthy" for s in health.values())
+    return {
+        "cluster_healthy": all_healthy,
+        "services_count": len(health),
+        "services": health,
+    }
+
 
 
 @app.get("/graph", response_model=GraphTopology)
@@ -151,12 +200,100 @@ async def get_event_history():
     return manager.history
 
 
+@app.get("/metrics/history", response_model=List[TelemetryPoint])
+async def get_metrics_history():
+    """Retrieve rolling time-series metrics history for live sparkline waveforms."""
+    return traffic_engine.get_history()
+
+
+@app.get("/service/{service_name}/telemetry")
+async def get_service_telemetry(service_name: str):
+    """Retrieve individual microservice telemetry metrics."""
+    return traffic_engine.get_service_telemetry(service_name)
+
+
+# --- GITOPS PULL REQUEST & REMEDIATION ENDPOINTS ---
+
+
+@app.get("/pr/current", response_model=Optional[PullRequestDetails])
+async def get_active_pr():
+    """Retrieve current Pull Request details, unified diff, and CI/CD checks."""
+    pr = get_current_pr()
+    if not pr:
+        # Default fallback to payment latency spike PR details if none opened yet
+        default_sc = get_scenario("payment_latency_spike")
+        if default_sc:
+            await open_github_pr(default_sc)
+            pr = get_current_pr()
+    return pr
+
+
+@app.post("/pr/merge")
+async def merge_pr_endpoint():
+    """Execute automated GitOps merge of active PR and deploy Terraform patch to production."""
+    pr = get_current_pr()
+    if not pr:
+        raise HTTPException(status_code=400, detail="No active Pull Request to merge.")
+
+    success, message = await merge_current_pr()
+    if success:
+        # Broadcast Stage 6/6 deployment_complete event over WebSocket
+        deploy_ev = generate_deployment_complete_event(pr.target_service, pr.patch_file)
+        await manager.broadcast(deploy_ev)
+        traffic_engine.mark_protected(pr.target_service)
+
+    return {"success": success, "message": message, "pr": get_current_pr()}
+
+
+@app.post("/pr/configure")
+async def configure_github_api(payload: Dict[str, str]):
+    """Dynamically set GitHub API credentials from the UI."""
+    token = payload.get("token", "")
+    repo = payload.get("repo", "")
+    return configure_github_credentials(token, repo)
+
+
+# --- CUSTOM CHAOS INJECTION & AI INCIDENT REPORT ---
+
+
+@app.post("/inject-fault")
+async def inject_custom_fault(payload: CustomFaultInjection):
+    """Inject custom on-demand chaos fault into any selected microservice."""
+    scenario = create_custom_chaos_scenario(
+        target_service=payload.service,
+        fault_type=payload.fault_type,
+        intensity_ms=payload.intensity_ms,
+        error_rate_pct=payload.error_rate_pct,
+    )
+
+    # Launch execution asynchronously
+    asyncio.create_task(execute_scenario_sequence(scenario.name, pace_ms=600))
+
+    return {
+        "status": "injected",
+        "scenario_name": scenario.name,
+        "target": payload.service,
+        "fault_type": payload.fault_type,
+        "severity_score": scenario.severity_score,
+        "cascade_path": scenario.cascade_path,
+    }
+
+
+@app.get("/incident/report")
+async def get_incident_report(scenario_name: str = "payment_latency_spike"):
+    """Generate executive AI Incident Post-Mortem and Root Cause Analysis."""
+    scenario = get_scenario(scenario_name) or get_scenario("payment_latency_spike")
+    pr = get_current_pr()
+    return generate_incident_report(scenario, pr)
+
+
 @app.post("/reset")
 async def reset_topology():
     """Reset all nodes in the topology back to healthy state."""
     static_graph = get_static_graph()
     reset_events: List[Event] = []
     ts = get_current_timestamp()
+    traffic_engine.clear_faults()
 
     for node in static_graph.nodes:
         ev = Event(
@@ -176,6 +313,7 @@ async def reset_topology():
     }
 
 
+
 # =============================================================================
 # Scenario Execution Engine
 # =============================================================================
@@ -192,6 +330,7 @@ async def execute_scenario_sequence(scenario_name: str, pace_ms: int = 600) -> L
     emitted_events: List[Event] = []
 
     # Step 1: attack_start
+    traffic_engine.inject_fault(scenario.target_service, 450.0, 28.0)
     ev1 = generate_attack_start_event(scenario)
     emitted_events.append(ev1)
     await manager.broadcast(ev1)
@@ -200,6 +339,8 @@ async def execute_scenario_sequence(scenario_name: str, pace_ms: int = 600) -> L
     # Step 2: cascade hops (one event per hop)
     cascade_events = generate_cascade_events(scenario)
     for hop_ev in cascade_events:
+        if hop_ev.service:
+            traffic_engine.inject_fault(hop_ev.service, 320.0, 16.0)
         emitted_events.append(hop_ev)
         await manager.broadcast(hop_ev)
         await asyncio.sleep(sleep_sec)
@@ -216,6 +357,14 @@ async def execute_scenario_sequence(scenario_name: str, pace_ms: int = 600) -> L
     is_contained, _ = simulate_validation(scenario, protected_edges)
     sim_ev = generate_simulation_result_event(scenario, is_contained)
     emitted_events.append(sim_ev)
+
+    # Traffic engine short-circuits faults and restores downstream nodes
+    traffic_engine.mark_protected(scenario.target_service)
+    for hop in scenario.cascade_path:
+        if hop in traffic_engine.metrics:
+            traffic_engine.metrics[hop].fault_latency_ms = 0.0
+            traffic_engine.metrics[hop].fault_error_rate = 0.0
+
     await manager.broadcast(sim_ev)
     await asyncio.sleep(sleep_sec)
 

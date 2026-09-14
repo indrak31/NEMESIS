@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-circuit-breaker-config
+  namespace: nemesis
+  labels:
+    app.kubernetes.io/name: payment-service
+    nemesis.io/remediation: circuit-breaker
+data:
+  circuit_breaker_enabled: "false"
+  timeout_ms: "60"
+  consecutive_5xx_threshold: "2"
+  base_ejection_seconds: "15"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-topology-config
+  namespace: nemesis
+data:
+  AUTH_SERVICE_URL: "http://auth-service.nemesis.svc.cluster.local:8002"
+  PAYMENT_SERVICE_URL: "http://payment-service.nemesis.svc.cluster.local:8003"
+  ORDERS_SERVICE_URL: "http://orders-service.nemesis.svc.cluster.local:8004"
+  INVENTORY_URL: "http://inventory-service.nemesis.svc.cluster.local:8005"
+  ORDERS_DB_URL: "http://orders-db.nemesis.svc.cluster.local:8006"
+  CACHE_URL: "http://cache-service.nemesis.svc.cluster.local:8007"
+  NOTIFICATION_SERVICE_URL: "http://notification-service.nemesis.svc.cluster.local:8008"

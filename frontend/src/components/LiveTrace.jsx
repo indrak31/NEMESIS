@@ -1,11 +1,22 @@
 import React, { useEffect, useRef } from "react";
-import { ExternalLink, GitPullRequest, Terminal, FileCode } from "lucide-react";
+import {
+  ExternalLink,
+  GitPullRequest,
+  Terminal,
+  FileCode,
+  FileText,
+  GitMerge,
+  ShieldCheck
+} from "lucide-react";
 
 export default function LiveTrace({
   events = [],
   latestPr = null,
   activePatchKey = "circuit_breaker.tf",
   onInspectPatch = null,
+  onOpenGitOps = null,
+  onOpenIncidentReport = null,
+  isPrDeployed = false,
 }) {
   const scrollRef = useRef(null);
 
@@ -26,6 +37,7 @@ export default function LiveTrace({
       case "simulation_result":
         return "detail-cyan";
       case "pr_opened":
+      case "deployment_complete":
         return "detail-green";
       default:
         return "detail-gray";
@@ -43,19 +55,20 @@ export default function LiveTrace({
       case "simulation_result":
         return "badge-cyan";
       case "pr_opened":
+      case "deployment_complete":
         return "badge-green";
       default:
         return "badge-gray";
     }
   };
 
-  // Format PR label (e.g. "#142 fix/payment-service-circuit_breaker" -> "#142")
   const prLabel = latestPr?.detail
     ? latestPr.detail.split(" ")[0]
     : "#142";
-  const prUrl = latestPr?.pr_url || "https://github.com/craftverse/nemesis-infra/pull/142";
+  const prUrl = latestPr?.pr_url || "https://github.com/Indra-Kurkute/NEMESIS-infra/pull/142";
 
   const hasFixEvent = events.some((e) => e.type === "defender_fix" || e.type === "pr_opened");
+  const hasContained = events.some((e) => e.type === "simulation_result" || e.type === "pr_opened");
 
   return (
     <div className="card-navy live-trace-card">
@@ -102,29 +115,65 @@ export default function LiveTrace({
         )}
       </div>
 
-      {/* Trace Footer Actions: Inspect Terraform Patch & View Pull Request */}
+      {/* Trace Footer Actions: IaC Patch, GitOps Merge Hub, and AI Incident Report */}
       <div className="trace-footer">
-        {hasFixEvent && onInspectPatch && (
-          <button
-            className="btn-inspect-action"
-            onClick={() => onInspectPatch(activePatchKey)}
-          >
-            <FileCode size={14} />
-            <span>Inspect {activePatchKey} IaC Patch</span>
-          </button>
-        )}
+        <div className="trace-footer-row">
+          {hasFixEvent && onInspectPatch && (
+            <button
+              className="btn-inspect-action"
+              onClick={() => onInspectPatch(activePatchKey)}
+              title="Inspect raw Terraform HCL definition"
+            >
+              <FileCode size={13} />
+              <span>Inspect {activePatchKey}</span>
+            </button>
+          )}
+
+          {hasContained && onOpenIncidentReport && (
+            <button
+              className="btn-report-action"
+              onClick={onOpenIncidentReport}
+              title="Generate Executive SRE Post-Mortem and Root Cause Analysis"
+            >
+              <FileText size={13} />
+              <span>AI Post-Mortem (RCA)</span>
+            </button>
+          )}
+        </div>
 
         {latestPr && (
-          <a
-            href={prUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-pr-action"
-          >
-            <GitPullRequest size={16} />
-            <span>View pull request {prLabel} &rarr;</span>
-            <ExternalLink size={13} className="ml-auto opacity-75" />
-          </a>
+          <div className="trace-footer-row">
+            {onOpenGitOps ? (
+              <button
+                className={`btn-gitops-action ${isPrDeployed ? "btn-gitops-deployed" : ""}`}
+                onClick={onOpenGitOps}
+                title="Open GitOps Review & Merge Hub"
+              >
+                {isPrDeployed ? (
+                  <>
+                    <ShieldCheck size={14} className="text-green" />
+                    <span>Merged & Deployed {prLabel}</span>
+                  </>
+                ) : (
+                  <>
+                    <GitMerge size={14} className="text-cyan" />
+                    <span>Review & Merge PR {prLabel} (CI Passed)</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <a
+                href={prUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-pr-action"
+              >
+                <GitPullRequest size={15} />
+                <span>View pull request {prLabel} &rarr;</span>
+                <ExternalLink size={13} className="ml-auto opacity-75" />
+              </a>
+            )}
+          </div>
         )}
       </div>
     </div>

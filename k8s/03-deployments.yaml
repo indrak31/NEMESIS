@@ -1,0 +1,402 @@
+# ==============================================================================
+# 1. API Gateway (Port 8001)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: nemesis
+  labels:
+    app: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: api-gateway
+        image: nemesis/api-gateway:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8001
+        envFrom:
+        - configMapRef:
+            name: cluster-topology-config
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: nemesis
+spec:
+  type: NodePort
+  ports:
+  - port: 8001
+    targetPort: 8001
+    nodePort: 30001
+  selector:
+    app: api-gateway
+
+---
+# ==============================================================================
+# 2. Auth Service (Port 8002)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: nemesis
+  labels:
+    app: auth-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+      - name: auth-service
+        image: nemesis/auth-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8002
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: nemesis
+spec:
+  ports:
+  - port: 8002
+    targetPort: 8002
+  selector:
+    app: auth-service
+
+---
+# ==============================================================================
+# 3. Payment Service (Port 8003) - Remediation Target
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: nemesis
+  labels:
+    app: payment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      containers:
+      - name: payment-service
+        image: nemesis/payment-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8003
+        envFrom:
+        - configMapRef:
+            name: cluster-topology-config
+        - configMapRef:
+            name: payment-circuit-breaker-config
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: nemesis
+spec:
+  type: NodePort
+  ports:
+  - port: 8003
+    targetPort: 8003
+    nodePort: 30003
+  selector:
+    app: payment-service
+
+---
+# ==============================================================================
+# 4. Orders Service (Port 8004)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-service
+  namespace: nemesis
+  labels:
+    app: orders-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders-service
+  template:
+    metadata:
+      labels:
+        app: orders-service
+    spec:
+      containers:
+      - name: orders-service
+        image: nemesis/orders-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8004
+        envFrom:
+        - configMapRef:
+            name: cluster-topology-config
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-service
+  namespace: nemesis
+spec:
+  ports:
+  - port: 8004
+    targetPort: 8004
+  selector:
+    app: orders-service
+
+---
+# ==============================================================================
+# 5. Inventory Service (Port 8005)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-service
+  namespace: nemesis
+  labels:
+    app: inventory-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-service
+  template:
+    metadata:
+      labels:
+        app: inventory-service
+    spec:
+      containers:
+      - name: inventory-service
+        image: nemesis/inventory-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8005
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 2
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+  namespace: nemesis
+spec:
+  ports:
+  - port: 8005
+    targetPort: 8005
+  selector:
+    app: inventory-service
+
+---
+# ==============================================================================
+# 6. Orders DB Service (Port 8006)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-db
+  namespace: nemesis
+  labels:
+    app: orders-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders-db
+  template:
+    metadata:
+      labels:
+        app: orders-db
+    spec:
+      containers:
+      - name: orders-db
+        image: nemesis/orders-db:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8006
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8006
+          initialDelaySeconds: 2
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-db
+  namespace: nemesis
+spec:
+  ports:
+  - port: 8006
+    targetPort: 8006
+  selector:
+    app: orders-db
+
+---
+# ==============================================================================
+# 7. Cache Service (Port 8007)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-service
+  namespace: nemesis
+  labels:
+    app: cache-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-service
+  template:
+    metadata:
+      labels:
+        app: cache-service
+    spec:
+      containers:
+      - name: cache-service
+        image: nemesis/cache-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8007
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8007
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache-service
+  namespace: nemesis
+spec:
+  ports:
+  - port: 8007
+    targetPort: 8007
+  selector:
+    app: cache-service
+
+---
+# ==============================================================================
+# 8. Notification Service (Port 8008)
+# ==============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: nemesis
+  labels:
+    app: notification-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+      - name: notification-service
+        image: nemesis/notification-service:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8008
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8008
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: nemesis
+spec:
+  ports:
+  - port: 8008
+    targetPort: 8008
+  selector:
+    app: notification-service
